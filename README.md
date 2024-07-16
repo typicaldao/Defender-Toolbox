@@ -5,10 +5,13 @@ Defender Toolbox uses PowerShell functions to help you with Defender Antivirus o
 ## Key functions
 ### `Convert-MpOperationalEventLogTxt`
 Format MpOperationalEvents.txt into PowerShell objects, and export the output as CSV so that you can use Excel or other tools to view and filter.
+
 ### `Convert-MacDlpPolicyBin`
 Convert Endpoint DLP policy from macOS (dlp_policy.bin, dlp_sensitive_info.bin and other policy-related .bin files).
+
 ### `Convert-WdavHistory`
 Convert Xplatform scan history file `wdavhistory` from JSON to a readable list.
+
 ### `Convert-MdavRtpDiag`
 Convert Xplatform real-time protection diagnostic log from JSON to a readable list.
 

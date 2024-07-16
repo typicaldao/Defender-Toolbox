@@ -1,5 +1,3 @@
-$DefenderToolbox_version = "0.1"
-
 function Convert-MpOperationalEventLogTxt {
     param(
         [string]$Path="$PWD\MpOperationalEvents.txt",
@@ -98,7 +96,7 @@ function Convert-UnixTime([string]$unixTime){
     return $converter
 }
 
-function Convert-wdavhistory {
+function Convert-Wdavhistory {
 
     param(
         $Path="$PWD\wdavhistory",
@@ -118,16 +116,20 @@ function Convert-wdavhistory {
     $Logdata.scans | Format-Table -Property startTime, endTime, scanDuration, filesScanned, scheduled, state, type, threats| Out-File $OutFile
 }
 
-function Convert-MdavRtpDiag {
-    $rtpLog = Read-Host "Please input file name:"
+function Convert-MdavRtpDiag() {
+    param(
+        [Parameter(Mandatory=$true)]$rtplog,
+        $OutFile = "$rtplog.txt"
+    )
     if (Test-Path $rtpLog){
         $val = Get-Content $rtpLog | ConvertFrom-Json
-        $val.counters | Where-Object {$PSItem.totalFilesScanned -gt 0} | Select-Object id, name, totalFilesScanned, path | Sort-Object -Property totalFilesScanned -Descending | Export-Csv .\$rtpLog.txt
+        $val.counters | ForEach-Object {$_.totalFilesScanned = [int32]$_.totalFilesScanned} # Convert totalFileScanned type from string to integer.
+        $val.counters | Where-Object {$PSItem.totalFilesScanned -gt 0} | Select-Object id, name, totalFilesScanned, path | Sort-Object -Property totalFilesScanned -Descending | Format-Table | Out-File -Force $OutFile
     }
     else {
-        Write-Host "Cannot find the file. Exit."
-        exit
+        Write-Host "Cannot find the file $rtplog. Exit."
+        return
     }
     
-    Write-Host "File saved as $rtpLog.txt successfully."
+    Write-Host "File saved as $OutFile successfully."
 }
