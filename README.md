@@ -3,15 +3,17 @@
 Defender Toolbox uses PowerShell functions to help you with Defender Antivirus or MDE log parsing automatically. It is also a replacement of some official Python tools for Xplatform. 
 
 ## Usage
-*Recommended*: Use one-line command to download the install the module automatically via the script.
+### *Recommended*: Use one-line command to download the install the module automatically via the script.
+```ps1
+Invoke-RestMethod https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Update-DefenderToolbox.ps1 | Invoke-Expression
+```
 
-    `Invoke-RestMethod https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Update-DefenderToolbox.ps1 | Invoke-Expression`
+### Or its shorter version:
+```ps1
+irm https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Update-DefenderToolbox.ps1 | iex
+```
 
-Or its shorter version:
-
-    `irm https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Update-DefenderToolbox.ps1 | iex`
-
-*Others*:
+### *Others*:
 Download and import the separated functions to use them.
 Or you can use the combined PowerShell profile `Microsoft.Powershell_profile.ps1` so that the functions are automatically loaded when PowerShell is launched.
 
