@@ -1,5 +1,6 @@
 # Global variables
-$ModuleFolder = "$env:USERPROFILE\Documents\PowerShell\Modules\Defender-Toolbox"
+$ModuleFolder = [System.Environment]::GetFolderPath('MyDocuments') + "\PowerShell\Modules"
+$ModuleName = "Defender-Toolbox"
 $ModuleFile = "Defender-Toolbox.psm1"
 $ModuleManifestFile = "Defender-Toolbox.psd1"
 
@@ -47,16 +48,16 @@ function Copy-ModuleFiles([string]$version){
     # OneDrive folder needs to be confirmed in the future. To be continued.
 
     # Create module folder with versions if it does not exists.
-    if(-Not (Test-Path $ModuleFolder\$version)){
-        New-Item -ItemType Directory -Path $ModuleFolder -Name $version
+    if(-Not (Test-Path $ModuleFolder\$ModuleName\$version)){
+        New-Item -ItemType Directory -Path $ModuleFolder\$ModuleName -Name $version
     }
     
     # Confirm module installation path.
     if ($ModuleFolder -in $env:PSModulePath.Split(";")){
         Write-Host "Trying to install Defender-Toolbox version $version at path: $ModuleFolder."
         try {
-            Copy-Item -Path $env:TEMP\$ModuleFile -Destination $ModuleFolder\$version
-            Copy-Item -Path $env:TEMP\$ModuleFile -Destination $ModuleFolder\$version
+            Copy-Item -Path $env:TEMP\$ModuleFile -Destination $ModuleFolder\$ModuleName\$version
+            Copy-Item -Path $env:TEMP\$ModuleManifestFile -Destination $ModuleFolder\\$ModuleName\$version
         }
         catch {
             Write-Host -ForegroundColor Red "Failed to copy files."
@@ -64,7 +65,9 @@ function Copy-ModuleFiles([string]$version){
         }
     }
     else{
-        Write-Host "Module folder $ModuleFolder is not inside PowerShell module path."
+        Write-Host -ForegroundColor Red "Module folder $ModuleFolder is not inside PowerShell module path."
+        Write-Host -ForegroundColor Yellow "Please manually copy the files $env:TEMP\$ModuleFile and $env:TEMP\$ModuleManifestFile to one of the folders below."
+        Write-Host $env:PSModulePath.Split(";")
         return
     }  
     
