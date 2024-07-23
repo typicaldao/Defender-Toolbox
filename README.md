@@ -4,10 +4,13 @@ Defender Toolbox uses PowerShell functions to help you with Defender Antivirus o
 
 ## Usage
 *Recommended*: Use one-line command to download the install the module automatically via the script.
+
     `Invoke-RestMethod https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Update-DefenderToolbox.ps1 | Invoke-Expression`
 
 Or its shorter version:
+
     `irm https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Update-DefenderToolbox.ps1 | iex`
+
 *Others*:
 Download and import the separated functions to use them.
 Or you can use the combined PowerShell profile `Microsoft.Powershell_profile.ps1` so that the functions are automatically loaded when PowerShell is launched.
