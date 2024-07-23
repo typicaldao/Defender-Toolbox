@@ -61,11 +61,13 @@ function Copy-ModuleFiles([string]$version){
         }
         catch {
             Write-Host -ForegroundColor Red "Failed to copy files."
+            Remove-Item $ModuleFolder\$ModuleName\$version # clean up the folder.
             return
         }
     }
     else{
         Write-Host -ForegroundColor Red "Module folder $ModuleFolder is not inside PowerShell module path."
+        Remove-Item $ModuleFolder\$ModuleName\$version # clean up the folder.
         Write-Host -ForegroundColor Yellow "Please manually copy the files $env:TEMP\$ModuleFile and $env:TEMP\$ModuleManifestFile to one of the folders below."
         Write-Host $env:PSModulePath.Split(";")
         return
