@@ -12,11 +12,16 @@ function Get-LatestVersion{
 }
 
 function Get-LocalVersion{
-    if (Test-Path $ModuleFolder){
-        Import-Module Defender-Toolbox # Try to import the module
-        $local_version = (Get-Module -Name Defender-Toolbox).Version
-        Remove-Module -Name Defender-Toolbox
-        return $local_version # Returns System.Version. Use ToString() to convert type.
+    if (Test-Path $ModuleFolder\$ModuleName){
+        try {
+            Import-Module Defender-Toolbox -ErrorAction Stop # Try to import the module
+            $local_version = (Get-Module -Name Defender-Toolbox).Version
+            Remove-Module -Name Defender-Toolbox
+            return $local_version # Returns System.Version. Use ToString() to convert type.
+        }
+        catch {
+            Write-Host "Failed to import module Defender-Toolbox."
+        }
     }
     else {
         return "0.0" # Returns a 0.0 version if module has never been installed.
