@@ -33,7 +33,7 @@ function Download-DefenderToolbox([string]$version) {
 
     try {
         Invoke-RestMethod -Uri $ModuleFileUri -OutFile $env:TEMP\$ModuleFile
-        Invoke-RestMethod -Uri $ModuleManifestFile -OutFile $env:TEMP\$ModuleManifestFile
+        Invoke-RestMethod -Uri $ModuleManifestUri -OutFile $env:TEMP\$ModuleManifestFile
     }
     catch {
         Write-Host -ForegroundColor Red "Downloading failed:"
