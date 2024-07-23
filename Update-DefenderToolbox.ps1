@@ -1,12 +1,12 @@
 # Global variables
 $ModuleFolder = [System.Environment]::GetFolderPath('MyDocuments') + "\PowerShell\Modules"
 $ModuleName = "Defender-Toolbox"
-$ModuleFile = "Defender-Toolbox.psm1"
-$ModuleManifestFile = "Defender-Toolbox.psd1"
+$ModuleFile = "$ModuleName.psm1"
+$ModuleManifestFile = "$ModuleName.psd1"
 
 function Get-LatestVersion{
     # $versionListFileUri = "http://127.0.0.1/version_list" # for local test (python3 -m http.server 8080)
-    $versionListFileUri = "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/version_list"
+    $versionListFileUri = "https://raw.githubusercontent.com/typicaldao/$ModuleName/main/version_list"
     $version = Invoke-RestMethod -Uri $versionListFileUri # should be a dymamic variable list in the future.
     return [string]$version
 }
@@ -14,13 +14,13 @@ function Get-LatestVersion{
 function Get-LocalVersion{
     if (Test-Path $ModuleFolder\$ModuleName){
         try {
-            Import-Module Defender-Toolbox -ErrorAction Stop # Try to import the module
-            $local_version = (Get-Module -Name Defender-Toolbox).Version
-            Remove-Module -Name Defender-Toolbox
+            Import-Module $ModuleName -ErrorAction Stop # Try to import the module
+            $local_version = (Get-Module -Name $ModuleName).Version
+            Remove-Module -Name $ModuleName
             return $local_version # Returns System.Version. Use ToString() to convert type.
         }
         catch {
-            Write-Host "Failed to import module Defender-Toolbox."
+            Write-Host "Failed to import module $ModuleName."
         }
     }
     else {
@@ -30,8 +30,8 @@ function Get-LocalVersion{
 
 function Download-DefenderToolbox([string]$version) {
     # Module links
-    $ModuleFileUri = "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Modules/$version/$ModuleFile"
-    $ModuleManifestUri = "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Modules/$version/$ModuleManifestFile"
+    $ModuleFileUri = "https://raw.githubusercontent.com/typicaldao/$ModuleName/main/Modules/$version/$ModuleFile"
+    $ModuleManifestUri = "https://raw.githubusercontent.com/typicaldao/$ModuleName/main/Modules/$version/$ModuleManifestFile"
     
     Write-Host "Try to download the latest version from GitHub to your temp folder."
 
@@ -59,7 +59,7 @@ function Copy-ModuleFiles([string]$version){
     
     # Confirm module installation path.
     if ($ModuleFolder -in $env:PSModulePath.Split(";")){
-        Write-Host "Trying to install Defender-Toolbox version $version at path: $ModuleFolder."
+        Write-Host "Trying to install $ModuleName version $version at path: $ModuleFolder."
         try {
             Copy-Item -Path $env:TEMP\$ModuleFile -Destination $ModuleFolder\$ModuleName\$version
             Copy-Item -Path $env:TEMP\$ModuleManifestFile -Destination $ModuleFolder\\$ModuleName\$version
@@ -78,7 +78,30 @@ function Copy-ModuleFiles([string]$version){
         return
     }  
     
-    Write-Host -ForegroundColor Green "Module files of Defender-Toolbox version $version are copied to the module folder."
+    Write-Host -ForegroundColor Green "Module files of $ModuleName version $version are copied to the module folder."
+}
+
+function Update-PsUserProfile {
+    $command = "Import-Module -Name $ModuleName"
+    $imported = $false
+    if (Test-Path $PROFILE){
+        $ProfileContent = Get-Content $PROFILE
+        $ProfileContent | ForEach-Object {
+            if ($_.Trim() -eq $command) { 
+                $imported = $true
+                Write-Host "$ModuleName has been imported automatically."
+                return 
+            }
+        }
+        if (!$imported){
+            Write-Host "Trying to add a new line to import module in your existing profile."
+            $command | Out-File $PROFILE -Append -Confirm
+        }
+    }
+    else{
+        Write-Host "You do not have a PowerShell profile. Would you create one and import the module automatially?"
+        New-Item -ItemType File -Value $command -Confirm $PROFILE 
+    }
 }
 
  # Main
@@ -94,5 +117,4 @@ function Copy-ModuleFiles([string]$version){
     return
  }
 
- # function Update-PSUserProfile
- # Will add 'Import-Module Defender-Toolbox' in Profile so the module is automatically loaded.
+ Update-PsUserProfile  # Will add 'Import-Module -Name Defender-Toolbox' in Profile so the module is automatically loaded.
