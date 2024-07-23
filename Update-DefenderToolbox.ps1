@@ -8,7 +8,7 @@ function Get-LatestVersion{
     # $versionListFileUri = "http://127.0.0.1/version_list" # for local test (python3 -m http.server 8080)
     $versionListFileUri = "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/version_list"
     $version = Invoke-RestMethod -Uri $versionListFileUri # should be a dymamic variable list in the future.
-    return $version
+    return [string]$version
 }
 
 function Get-LocalVersion{
