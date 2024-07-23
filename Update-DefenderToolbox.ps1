@@ -82,12 +82,12 @@ function Copy-ModuleFiles([string]$version){
 }
 
 function Update-PsUserProfile {
-    $command = "Import-Module -Name $ModuleName"
+    $command = "`nImport-Module -Name $ModuleName"
     $imported = $false
     if (Test-Path $PROFILE){
         $ProfileContent = Get-Content $PROFILE
         $ProfileContent | ForEach-Object {
-            if ($_.Trim() -eq $command) { 
+            if ($_.Trim() -eq $command.Trim()) { 
                 $imported = $true
                 Write-Host "$ModuleName has been imported automatically."
                 return 
