@@ -1,10 +1,12 @@
 # Global variables
 $ModuleFolder = "$env:USERPROFILE\Documents\PowerShell\Modules\Defender-Toolbox"
+$ModuleFile = "Defender-Toolbox.psm1"
+$ModuleManifestFile = "Defender-Toolbox.psd1"
 
 function Get-LatestVersion{
-    $versionListFileUri = "http://127.0.0.1/version_list" # for local test
-    # $versionListFileUri = GitHut Remote Url
-    $version = Invoke-RestMethod -Uri $versionListFileUri # should be a dymamic variable.
+    # $versionListFileUri = "http://127.0.0.1/version_list" # for local test (python3 -m http.server 8080)
+    $versionListFileUri = "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/version_list"
+    $version = Invoke-RestMethod -Uri $versionListFileUri # should be a dymamic variable list in the future.
     return $version
 }
 
@@ -16,20 +18,16 @@ function Get-LocalVersion{
         return $local_version # Returns System.Version. Use ToString() to convert type.
     }
     else {
-        return "0.0"
+        return "0.0" # Returns a 0.0 version if module has never been installed.
     }
 }
 
-
-
 function Download-DefenderToolbox([string]$version) {
     # Module links
-    $ModuleFile = "Defender-Toolbox.psm1"
-    $ModuleManifestFile = "Defender-Toolbox.psd1"
     $ModuleFileUri = "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Modules/$version/$ModuleFile"
     $ModuleManifestUri = "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Modules/$version/$ModuleManifestFile"
     
-    Write-Host "Download the latest version from GitHub to your temp folder."
+    Write-Host "Try to download the latest version from GitHub to your temp folder."
 
     try {
         Invoke-RestMethod -Uri $ModuleFileUri -OutFile $env:TEMP\$ModuleFile
@@ -41,17 +39,36 @@ function Download-DefenderToolbox([string]$version) {
         return
     }
 
-    # Confirm module installation path.
-    # OneDrive folder needs to be confirmed.
-    if ($ModuleFolder -in $env:PSModulePath.Split(";")){
-        Write-Host "Install Defender-Toolbox version $version at path: $ModuleFolder."
-    }  
-    # To be continued.  
+    Write-Host -ForegroundColor Green "Download $ModuleFile and $ModuleManifestfile at $env:TEMP successfully."
 }
 
-function Copy-ModuleFiles{
+function Copy-ModuleFiles([string]$version){
     # Do this when the download is successful.
-    Write-Host "Update module files to the module folder."
+    # OneDrive folder needs to be confirmed in the future. To be continued.
+
+    # Create module folder with versions if it does not exists.
+    if(-Not (Test-Path $ModuleFolder\$version)){
+        New-Item -ItemType Directory -Path $ModuleFolder -Name $version
+    }
+    
+    # Confirm module installation path.
+    if ($ModuleFolder -in $env:PSModulePath.Split(";")){
+        Write-Host "Trying to install Defender-Toolbox version $version at path: $ModuleFolder."
+        try {
+            Copy-Item -Path $env:TEMP\$ModuleFile -Destination $ModuleFolder\$version
+            Copy-Item -Path $env:TEMP\$ModuleFile -Destination $ModuleFolder\$version
+        }
+        catch {
+            Write-Host -ForegroundColor Red "Failed to copy files."
+            return
+        }
+    }
+    else{
+        Write-Host "Module folder $ModuleFolder is not inside PowerShell module path."
+        return
+    }  
+    
+    Write-Host -ForegroundColor Green "Module files of Defender-Toolbox version $version are copied to the module folder."
 }
 
  # Main
@@ -59,8 +76,13 @@ function Copy-ModuleFiles{
  $version = Get-LatestVersion
 
  if ($version -gt $local_version){
-    Download-DefenderToolbox
-    Copy-ModuleFiles
+    Download-DefenderToolbox($version)
+    Copy-ModuleFiles($version)
+ }
+ elseif ($version -eq $local_version) {
+    Write-Host "You have already installed the latest version: $version"
+    return
  }
 
- # To be continued
+ # function Update-PSUserProfile
+ # Will add 'Import-Module Defender-Toolbox' in Profile so the module is automatically loaded.
