@@ -1,14 +1,24 @@
 # Global variables
-$ModuleFolder = [System.Environment]::GetFolderPath('MyDocuments') + "\PowerShell\Modules"
+$PSVersion = [string]$PSVersionTable.PSVersion
+$PSModuleUserProfile = "\WindowsPowerShell\Modules"
+if ($PSVersion -gt "7.1"){$PSModuleUserProfile = "\PowerShell\Modules"}
+$ModuleFolder = [System.Environment]::GetFolderPath('MyDocuments') + $PSModuleUserProfile
 $ModuleName = "Defender-Toolbox"
 $ModuleFile = "$ModuleName.psm1"
 $ModuleManifestFile = "$ModuleName.psd1"
+$result = $false
 
 function Get-LatestVersion{
     # $versionListFileUri = "http://127.0.0.1/version_list" # for local test (python3 -m http.server 8080)
     $versionListFileUri = "https://raw.githubusercontent.com/typicaldao/$ModuleName/main/version_list"
-    $version = Invoke-RestMethod -Uri $versionListFileUri # should be a dymamic variable list in the future.
-    return [string]$version
+    try {
+        $version = Invoke-RestMethod -Uri $versionListFileUri
+        return [string]$version
+    }
+    catch {
+        Write-Host "Failed to get remote version."
+        Write-Host -ForegroundColor Red "Error: $_"
+    }
 }
 
 function Get-LocalVersion{
@@ -42,10 +52,11 @@ function Download-DefenderToolbox([string]$version) {
     catch {
         Write-Host -ForegroundColor Red "Downloading failed:"
         Write-Host $_
-        return
+        return $false
     }
 
     Write-Host -ForegroundColor Green "Download $ModuleFile and $ModuleManifestfile at $env:TEMP successfully."
+    return $true
 }
 
 function Copy-ModuleFiles([string]$version){
@@ -67,7 +78,7 @@ function Copy-ModuleFiles([string]$version){
         catch {
             Write-Host -ForegroundColor Red "Failed to copy files."
             Remove-Item $ModuleFolder\$ModuleName\$version # clean up the folder.
-            return
+            return $false
         }
     }
     else{
@@ -75,10 +86,11 @@ function Copy-ModuleFiles([string]$version){
         Remove-Item $ModuleFolder\$ModuleName\$version # clean up the folder.
         Write-Host -ForegroundColor Yellow "Please manually copy the files $env:TEMP\$ModuleFile and $env:TEMP\$ModuleManifestFile to one of the folders below."
         Write-Host $env:PSModulePath.Split(";")
-        return
+        return $false
     }  
     
     Write-Host -ForegroundColor Green "Module files of $ModuleName version $version are copied to the module folder."
+    return $true
 }
 
 function Update-PsUserProfile {
@@ -109,11 +121,11 @@ function Update-PsUserProfile {
  $version = Get-LatestVersion
 
  if ($version -gt $local_version){
-    Download-DefenderToolbox($version)
-    Copy-ModuleFiles($version)
+    $result = Download-DefenderToolbox($version)
+    $result = Copy-ModuleFiles($version)
  }
  elseif ($version -eq $local_version) {
     Write-Host "You have already installed the latest version: $version"
  }
 
- Update-PsUserProfile  # Will add 'Import-Module -Name Defender-Toolbox' in Profile so the module is automatically loaded.
+ if ($result) { Update-PsUserProfile }   # Will add 'Import-Module -Name Defender-Toolbox' in Profile so the module is automatically loaded.
