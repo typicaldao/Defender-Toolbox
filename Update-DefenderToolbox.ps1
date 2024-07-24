@@ -126,6 +126,7 @@ function Update-PsUserProfile {
  }
  elseif ($version -eq $local_version) {
     Write-Host "You have already installed the latest version: $version"
+    $result = $true
  }
 
  if ($result) { Update-PsUserProfile }   # Will add 'Import-Module -Name Defender-Toolbox' in Profile so the module is automatically loaded.
