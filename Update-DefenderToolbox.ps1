@@ -106,12 +106,12 @@ function Update-PsUserProfile {
             }
         }
         if (!$imported){
-            Write-Host "Trying to add a new line to import module in your existing profile."
+            Write-Host -ForegroundColor Cyan "Trying to add a new line to import module in your existing profile. Please confirm."
             $command | Out-File $PROFILE -Append -Confirm
         }
     }
     else{
-        Write-Host "You do not have a PowerShell profile. Would you create one and import the module automatially?"
+        Write-Host -ForegroundColor Cyan "You do not have a PowerShell profile. Would you create one and import the module automatially?"
         New-Item -ItemType File -Value $command -Confirm $PROFILE 
     }
 }
