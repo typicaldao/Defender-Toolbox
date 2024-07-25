@@ -14,18 +14,18 @@ function Convert-MpRegistrytxtToJson {
     foreach ($line in $lines) {
         if ($line.StartsWith("Current configuration options for location")){
             $policy = ($line -split '"')[1]
-            $jsonObject[$policy] = @{}
+            $jsonObject.$policy = [ordered]@{}
         }
         elseif ($line -match '^\[(.+)\]$') {
             $currentSection = $matches[1]
-            $jsonObject[$policy][$currentSection] = [ordered]@{}
-        } elseif ($line -match '^\s{4}(\S+)\s+\[.+\]\s+:\s(.+)$') {
+            $jsonObject.$policy.$currentSection = [ordered]@{}
+        } 
+        elseif ($line -match '^\s{4}(\S+)\s+\[.+\]\s+:\s(.+)$') {
             $key = $matches[1]
             $value = $matches[2]
-            $jsonObject[$policy][$currentSection][$key] = $value
+            $jsonObject.$policy.$currentSection.$key = $value
         }
 }
-
-    $json = $jsonObject | ConvertTo-Json -Depth 5
+    $json = $jsonObject | ConvertTo-Json
     $json | Out-File -FilePath $OutFile -Force
 }
