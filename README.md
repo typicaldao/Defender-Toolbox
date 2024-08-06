@@ -40,7 +40,8 @@ Convert Xplatform (macOS/Linux) real-time protection diagnostic log from JSON to
 Reference official documentation: https://learn.microsoft.com/en-us/defender-endpoint/linux-support-perf?view=o365-worldwide
 Python version of the parser provided by Microsoft/mdatp-xplat: https://github.com/microsoft/mdatp-xplat/blob/master/linux/diagnostic/high_cpu_parser.py
 
+### `Convert-MpRegistrytxtToJson`
+Convert Defender log: MpRegistry.txt into a JSON format.
 
 ## Feature on the way
 1. List help information of the tool.
-1. Parse MpRegistry.txt to JSON format.
