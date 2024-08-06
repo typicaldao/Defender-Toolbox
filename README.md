@@ -43,4 +43,4 @@ Python version of the parser provided by Microsoft/mdatp-xplat: https://github.c
 
 ## Feature on the way
 1. List help information of the tool.
-1. Install and update the tool to PowerShell profile in a one-line command.
+1. Parse MpRegistry.txt to JSON format.

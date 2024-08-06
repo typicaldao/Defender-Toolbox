@@ -13,8 +13,6 @@ function Convert-MpRegistrytxtToJson {
     $depth = 1
     $regs = ""
     $other_regs = $false
-
-    # NIS is a special one. Initialize it here.
     
     :DefenderAV foreach ($line in $lines) {
         # Match the root category
