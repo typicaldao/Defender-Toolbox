@@ -7,12 +7,10 @@ function Convert-MpRegistrytxtToJson {
     $lines = Get-Content $Path
     $json_result = [ordered]@{}
 
-    $Section = ""
-    $next_Section= ""
     $this_line = 0
     $depth = 1
     $regs = ""
-    $other_regs = $false
+
     
     :DefenderAV foreach ($line in $lines) {
         # Match the root category
@@ -22,7 +20,6 @@ function Convert-MpRegistrytxtToJson {
         }
 
         elseif ($line.StartsWith("Windows Setup keys from")) {
-            $other_regs = $true
             $this_line++
             break DefenderAV # exit when Defender AV regs are finished
         }
@@ -46,6 +43,7 @@ function Convert-MpRegistrytxtToJson {
         elseif ($line -match '^\s{4}(\S+)\s+\[.+\]\s+:\s(.+)$') {
             $key = $matches[1]
             $value = $matches[2]
+            if ($value -in ("<NO VALUE>","(null)")) { $value = "" }
             switch ($depth){
                 1 { $json_result.$policy.($regs[0]).$key = $value; break }
                 2 { $json_result.$policy.($regs[0]).($regs[1]).$key = $value; break}
@@ -91,6 +89,9 @@ function Convert-MpRegistrytxtToJson {
             }
         }
 
-    $json = $json_result | ConvertTo-Json -Depth 4 -WarningAction Ignore
+    $json = $json_result | ConvertTo-Json -Depth 4 -WarningAction Ignore | ForEach-Object {
+        [Regex]::Replace($_, "\\u(?<Value>[a-fA-F0-9]{4})", { param($m) ([char]([int]::Parse($m.Groups['Value'].Value, [System.Globalization.NumberStyles]::HexNumber))).ToString() } )}       
+        # Converto-Json in PowerShell 5.1 does not have escape handling options, so we do it manually.
+        # Reference: https://stackoverflow.com/questions/47779157/convertto-json-and-convertfrom-json-with-special-characters/47779605#47779605
     $json | Out-File -FilePath $OutFile -Force
 }
