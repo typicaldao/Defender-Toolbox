@@ -10,7 +10,8 @@ function Convert-MpRegistrytxtToJson {
     $this_line = 0
     $depth = 1
     $regs = ""
-
+    $key = ""
+    $value = ""
     
     :DefenderAV foreach ($line in $lines) {
         # Match the root category
@@ -52,6 +53,11 @@ function Convert-MpRegistrytxtToJson {
             }
         }
 
+        # Try to merge Device Control policy into single line. It will break when the DC policy format is not expected.
+        elseif ($line -match '\s{2}<.+>$' ) {
+            $json_result.$policy.($regs[0]).($regs[1]).$key += $line
+        }
+
         $this_line++
         }
 
@@ -84,7 +90,7 @@ function Convert-MpRegistrytxtToJson {
                         $value = $matches[2]
                         $json_result.$policy.$reg_path.$key = $value
                     }
-                    
+
                 }
             }
         }
