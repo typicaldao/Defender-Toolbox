@@ -13,7 +13,7 @@ Invoke-RestMethod "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox
 irm "https://raw.githubusercontent.com/typicaldao/Defender-Toolbox/main/Update-DefenderToolbox.ps1" | iex
 ```
 ## Recommendations
-1. PowerShell 7.x is recommended, but PowerShell 5.1 should work as well. However, it could encounter into some encoding issues (like `ConvertTo-Json`). Still working on it to resolve this issue.
+1. PowerShell 7.x is recommended, but PowerShell 5.1 should work as well. However, it could encounter into some encoding issues (like `ConvertTo-Json` - resolved on August 7th). Same function could have different parameters and results, so let me know when you encounter such issue.
 1. Load the module automatically in your PowerShell profile. (The update module will check and help you with it.) When you need to parse log, right click in file explorer and run the functions directly. Usually, no additional parameter is needed as the default log name is used.
 
 ### *Others*:
@@ -48,3 +48,4 @@ Convert Defender log: MpRegistry.txt into a JSON format.
 
 ## Feature on the way
 1. List help information of the tool.
+1. Add updating module and parser features in the next version (expected 0.2).
