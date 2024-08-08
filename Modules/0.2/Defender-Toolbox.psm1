@@ -266,6 +266,7 @@ function Update-DefenderToolbox {
         catch {
             Write-Host "Failed to get remote version."
             Write-Host -ForegroundColor Red "Error: $_"
+            return "0"
         }
     }
 
@@ -274,7 +275,7 @@ function Update-DefenderToolbox {
             try {
                 Import-Module $ModuleName -ErrorAction Stop # Try to import the module
                 $local_version = (Get-Module -Name $ModuleName).Version
-                Remove-Module -Name $ModuleName
+                # Remove-Module -Name $ModuleName # The module should not be removed when used as a local module.
                 return $local_version # Returns System.Version. Use ToString() to convert type.
             }
             catch {
