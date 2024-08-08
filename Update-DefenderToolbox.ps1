@@ -27,7 +27,7 @@ function Get-LocalVersion{
         try {
             Import-Module $ModuleName -ErrorAction Stop # Try to import the module
             $local_version = (Get-Module -Name $ModuleName).Version
-            Remove-Module -Name $ModuleName
+            # Remove-Module -Name $ModuleName # Comment out this line in case imported module is removed.
             return $local_version # Returns System.Version. Use ToString() to convert type.
         }
         catch {
