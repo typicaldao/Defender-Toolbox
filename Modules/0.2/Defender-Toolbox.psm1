@@ -260,7 +260,8 @@ function Update-DefenderToolbox {
         $versionListFileUri = "https://raw.githubusercontent.com/typicaldao/$ModuleName/main/version_list"
         try {
             $version = Invoke-RestMethod -Uri $versionListFileUri
-            return [string]$version
+            $latest_version = $version.Split()[-1]
+            return [string]$latest_version
         }
         catch {
             Write-Host "Failed to get remote version."
