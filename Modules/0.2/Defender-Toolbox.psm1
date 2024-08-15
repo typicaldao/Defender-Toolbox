@@ -54,7 +54,7 @@ function Convert-MpOperationalEventLogTxt {
         Write-Progress -Activity "Parsing" -Status "$i of $TotalLines lines parsed" -PercentComplete ($i/($TotalLines)*100)
     }
     
-    $Result | Export-Csv -Path $OutFile
+    $Result | Export-Csv -Encoding utf8BOM -Path $OutFile 
 }
 Export-ModuleMember -Function Convert-MpOperationalEventLogTxt
 
