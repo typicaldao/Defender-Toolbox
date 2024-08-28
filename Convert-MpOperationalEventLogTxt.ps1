@@ -3,19 +3,25 @@
 function Convert-MpOperationalEventLogTxt {
     param(
         [string]$Path = "$PWD\MpOperationalEvents.txt",
-        [string]$OutFile = "$PWD\MpOperationalEvents.json",
-        [switch]$asCsv
+        [string]$OutFile = "$PWD\MpOperationalEvents.csv"
     )
-    
+
+    $asCsv = $OutFile -imatch "\.csv$"
+    $asJson = $OutFile -imatch "\.json$"
+    if(!$asCsv-and !$asJson) {
+        Write-Host "Output file type must be either .csv or .json"
+        return
+    }
+
     if ((Test-Path $Path) -eq $false ) {
         Write-Host "$Path is not found! Exit"
         return
     }
-    
+
     #Read Data
     $EventSeparator = "*****"
     $LogData = (Get-Content -Path $Path) + $EventSeparator
-    
+
     # Some variables
     $Result = [collections.arraylist]::new()
     $i = 1 # Counter for Write-Progress
@@ -39,12 +45,13 @@ function Convert-MpOperationalEventLogTxt {
     }
 
     [void]$Result.Insert(0, (Format-Headers $Header))
-    $JsonFile = convertto-json $Result -Depth 10
-    if ($asCsv) {
-        $Result | Export-Csv -Encoding utf8BOM -NoTypeInformation -Path $OutFile
+    $JsonFile = convertto-json $Result
+
+    if ($asJson) {
+        $JsonFile | Out-File -Encoding utf8BOM -FilePath $OutFile
     }
     else {
-        $JsonFile | Out-File -Encoding utf8BOM -FilePath $OutFile
+        $Result | Export-Csv -Encoding utf8BOM -NoTypeInformation -Path $OutFile
     }
 }
 
@@ -80,7 +87,7 @@ function Format-EventMessage {
         return
     }
 
-    $Description = $tabArray[0]
+    $Description = ($tabArray[0]).Replace("`r`n", "")
     $message = [ordered]@{
         EventTimestamp   = $Timestamp
         ErrorLevel       = $Level
@@ -95,10 +102,10 @@ function Format-EventMessage {
             write-warning "bad details: $tabArray[$i]"
             continue
         }
-        $DetailsName = $LineDetails[0].Trim().replace(" ", "-")
+        $DetailsName = $LineDetails[0].Trim().Replace(" ", "-")
         $DetailsValue = ""
         if ($LineDetails.Count -gt 1) {
-            $DetailsValue = $LineDetails[1].Trim()
+            $DetailsValue = $LineDetails[1].Replace("`r`n", "")
         }
         if ($message.Contains($DetailsName)) {
             Write-Warning "Duplicate key: $DetailsName : $DetailsValue"
