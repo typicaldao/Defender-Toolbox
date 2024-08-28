@@ -3,7 +3,7 @@
 function Convert-MpOperationalEventLogTxt {
     param(
         [string]$Path = "$PWD\MpOperationalEvents.txt",
-        [string]$OutFile = "$PWD\MpOperationalEvents.csv",
+        [string]$OutFile = "$PWD\MpOperationalEvents.json",
         [switch]$asCsv
     )
     
@@ -18,14 +18,13 @@ function Convert-MpOperationalEventLogTxt {
     
     # Some variables
     $Result = [collections.arraylist]::new()
-    $i = 0 # Counter for Write-Progress
+    $i = 1 # Counter for Write-Progress
     $TotalLines = $Logdata.Count
     $Header = @{}
     $EventMessage = [text.stringbuilder]::new()
 
     foreach ($Line in $LogData) {
-        $i++
-        Write-Progress -Activity "Parsing" -Status "$i of $TotalLines lines parsed" -PercentComplete ($i / ($TotalLines) * 100)
+        Write-Progress -Activity "Parsing" -Status "$i of $TotalLines lines parsed" -PercentComplete ($i++ / ($TotalLines) * 100)
 
         if ($Line.Length -lt 1) {
             continue
@@ -71,7 +70,7 @@ function Format-EventMessage {
         $Machine = $FirstLineMatch.Groups["Machine"].Value
         # convert timestamp from g to datetime suitable for kusto ingestion
         # 6/9/2024 12:53:54 PM
-        $Timestamp = [datetime]::Parse($Timestamp).ToUniversalTime().tostring("yyyy-MM-ddTHH:mm:ss.fffZ")
+        $Timestamp = [System.DateTimeOffset]::Parse($Timestamp).ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")
     }
 
     $EventMessage = $EventMessage.Remove(0, $FirstLine.Length + 1)
@@ -127,12 +126,12 @@ function Format-Headers {
         EventDescription = "Description"
     }
 
-    foreach ($kvp in $HeaderDictionary.GetEnumerator() | Sort-Object Name) {
-        if ($Header.Contains($kvp.name)) {
-            Write-Warning "Duplicate key: $kvp.name : $kvp.value"
+    foreach ($Kvp in $HeaderDictionary.GetEnumerator() | Sort-Object Name) {
+        if ($Header.Contains($Kvp.Name)) {
+            Write-Warning "Duplicate header: $($Kvp.Name) : $($Kvp.Value)"
         }
         else {
-            [void]$Header.Add($kvp.name, $kvp.value)
+            [void]$Header.Add($Kvp.Name, $Kvp.Value)
         }
     }
     return $Header
