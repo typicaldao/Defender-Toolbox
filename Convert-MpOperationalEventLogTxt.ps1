@@ -78,6 +78,7 @@ function Format-EventMessage {
         # convert timestamp from g to datetime suitable for kusto ingestion
         # 6/9/2024 12:53:54 PM
         $Timestamp = [System.DateTimeOffset]::Parse($Timestamp).ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")
+        #$Timestamp = [datetime]::Parse($Timestamp).ToUniversalTime().tostring("yyyy-MM-ddTHH:mm:ss.fffZ")
     }
 
     $EventMessage = $EventMessage.Remove(0, $FirstLine.Length + 1)
@@ -105,7 +106,7 @@ function Format-EventMessage {
         $DetailsName = $LineDetails[0].Trim().Replace(" ", "-")
         $DetailsValue = ""
         if ($LineDetails.Count -gt 1) {
-            $DetailsValue = $LineDetails[1].Replace("`r`n", "")
+            $DetailsValue = $LineDetails[1].Replace("`r`n", "").Trim()
         }
         if ($message.Contains($DetailsName)) {
             Write-Warning "Duplicate key: $DetailsName : $DetailsValue"
