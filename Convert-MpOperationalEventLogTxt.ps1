@@ -1,4 +1,62 @@
-# Plan: Add event ID as filter in parameter.
+<#
+.SYNOPSIS
+    Convert Windows Defender MpOperationalEvents.txt to CSV or JSON
+
+.DESCRIPTION
+    This script converts the Windows Defender MpOperationalEvents.txt file to either CSV or JSON format.
+    The script reads the MpOperationalEvents.txt file and extracts the event details.
+    The output file will contain the following columns:
+    - EventTimestamp
+    - ErrorLevel
+    - EventId
+    - Machine
+    - EventDescription
+    - EventDetails (optional)
+
+    The EventDetails column will contain the event details in Tab separated or JSON format if the -expandEventDetails switch is not used.
+    If the -expandEventDetails switch is used, the EventDetails column will not be created and all event details will be created in new fields.
+
+.PARAMETER path
+    The path to the MpOperationalEvents.txt file
+    To generate the MpOperationalEvents.txt file, from an elevated command prompt, run the following command on a Windows machine with Defender Antivirus installed:
+        "C:\Program Files\Windows Defender\MpCmdRun.exe" -GetFiles
+
+.PARAMETER outFile
+    The path to the output file. The file type must be either .csv or .json
+
+.PARAMETER expandEventDetails
+    Switch to include event details in the output
+
+.EXAMPLE
+    To generate the MpOperationalEvents.txt file, from an elevated command prompt, run the following commands on a Windows machine with Defender Antivirus installed:
+    C:\temp>"C:\Program Files\Windows Defender\MpCmdRun.exe" -GetFiles
+        Launching "C:\ProgramData\Microsoft\Windows Defender\Platform\4.18.24070.5-0\MpCmdRun.exe" -GetFiles -Reinvoke...
+        ValidateMapsConnection successfully established a connection to MAPS
+        Collecting events from Operational Event Log...
+        ...
+        Creating CAB file...
+        Files successfully created in C:\ProgramData\Microsoft\Windows Defender\Support\MpSupportFiles.cab
+
+    C:\temp>copy C:\ProgramData\Microsoft\Windows Defender\Support\MpSupportFiles.cab C:\temp
+        1 file(s) copied.
+    C:\temp>md C:\temp\MpSupportFiles
+    C:\temp>expand -R -I "C:\temp\MpSupportFiles.cab" -F:* "c:\temp\MpSupportFiles"
+
+.EXAMPLE
+    Convert-MpOperationalEventLogTxt -path "C:\temp\MpOperationalEvents.txt" -outFile "C:\temp\MpOperationalEvents.csv"
+    Convert the MpOperationalEvents.txt file to a CSV file
+
+.EXAMPLE
+    Convert-MpOperationalEventLogTxt -path "C:\temp\MpOperationalEvents.txt" -outFile "C:\temp\MpOperationalEvents.json"
+    Convert the MpOperationalEvents.txt file to a JSON file
+
+.EXAMPLE
+    Convert-MpOperationalEventLogTxt -path "C:\temp\MpOperationalEvents.txt" -outFile "C:\temp\MpOperationalEvents.csv" -expandEventDetails
+    Convert the MpOperationalEvents.txt file to a CSV file with expanded event details into a separate columns
+
+.LINK
+    https://github.com/typicaldao/Defender-Toolbox/blob/main/Convert-MpOperationalEventLogTxt.ps1
+#>
 
 function Convert-MpOperationalEventLogTxt(
     [string]$path = "$PWD\MpOperationalEvents.txt",
