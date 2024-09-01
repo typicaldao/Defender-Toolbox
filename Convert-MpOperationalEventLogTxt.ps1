@@ -1,132 +1,197 @@
 # Plan: Add event ID as filter in parameter.
 
-function Convert-MpOperationalEventLogTxt {
-    param(
-        [string]$Path = "$PWD\MpOperationalEvents.txt",
-        [string]$OutFile = "$PWD\MpOperationalEvents.csv"
-    )
+function Convert-MpOperationalEventLogTxt(
+    [string]$path = "$PWD\MpOperationalEvents.txt",
+    [string]$outFile = "$PWD\MpOperationalEvents.csv",
+    [switch]$expandEventDetails
+) {
 
-    $asCsv = $OutFile -imatch "\.csv$"
-    $asJson = $OutFile -imatch "\.json$"
-    if(!$asCsv-and !$asJson) {
+    $asCsv = $outFile -imatch "\.csv$"
+    $asJson = $outFile -imatch "\.json$"
+
+    if (!$asCsv -and !$asJson) {
         Write-Host "Output file type must be either .csv or .json"
         return
     }
 
-    if ((Test-Path $Path) -eq $false ) {
-        Write-Host "$Path is not found! Exit"
+    if ((Test-Path $path) -eq $false ) {
+        Write-Host "$path is not found! Exit"
         return
     }
 
     #Read Data
-    $EventSeparator = "*****"
-    $LogData = (Get-Content -Path $Path) + $EventSeparator
+    $eventSeparator = "*****"
+    $logData = Get-Content -path $path
 
     # Some variables
-    $Result = [collections.arraylist]::new()
-    $i = 1 # Counter for Write-Progress
-    $TotalLines = $Logdata.Count
-    $Header = @{}
-    $EventMessage = [text.stringbuilder]::new()
+    $result = [collections.arraylist]::new()
+    $totalLines = $logData.Count
+    $header = @{}
+    $eventMessage = [collections.arrayList]::new()
+    $eventStartIndex = 0
 
-    foreach ($Line in $LogData) {
-        Write-Progress -Activity "Parsing" -Status "$i of $TotalLines lines parsed" -PercentComplete ($i++ / ($TotalLines) * 100)
+    for ($i = 0; $i -lt $totalLines) {
+        $line = $logData[$i]
+        $i++
 
-        if ($Line.Length -lt 1) {
-            continue
-        }
-        if ($Line.StartsWith($EventSeparator)) {
-            [void]$Result.Add((Format-EventMessage $EventMessage $Header))
-            [void]$EventMessage.Clear()
+        if ($line.Length -lt 1) {
+            Write-Verbose "empty line. line: $($i - 1)"
             continue
         }
 
-        [void]$EventMessage.AppendLine($Line)
+        Write-Progress -Activity "Parsing" -Status "$i of $totalLines lines parsed" -PercentComplete (($i / $totalLines) * 100)
+
+        if ($line.StartsWith($eventSeparator) -or ($i -eq $totalLines)) {
+            [void]$result.Add((
+                    Format-EventMessage -eventMessage $eventMessage `
+                        -fieldList $header `
+                        -eventIndex $eventStartIndex `
+                        -eventDetails:$expandEventDetails `
+                        -asJson:$asJson
+                ))
+
+            $eventStartIndex = $i
+            [void]$eventMessage.Clear()
+            continue
+        }
+
+        [void]$eventMessage.Add($line)
     }
 
-    [void]$Result.Insert(0, (Format-Headers $Header))
-    $JsonFile = convertto-json $Result
+    [void]$result.Insert(0, (Format-Headers -headerDictionary $header -eventDetails:$expandEventDetails))
+    $jsonFile = ConvertTo-Json $result
 
     if ($asJson) {
-        $JsonFile | Out-File -Encoding utf8BOM -FilePath $OutFile
+        $jsonFile | Out-File -Encoding utf8BOM -FilePath $outFile
     }
     else {
-        $Result | Export-Csv -Encoding utf8BOM -NoTypeInformation -Path $OutFile
+        $result | Export-Csv -Encoding utf8BOM -NoHeader -NoTypeInformation -Path $outFile
     }
+
+    Write-host "Processed lines: $totalLines events: $($result.Count - 1) File: $outFile"
 }
 
 function Format-EventMessage {
     param(
-        [text.stringbuilder]$EventMessage,
-        [hashtable]$FieldList
+        [collections.arrayList]$eventMessage,
+        [hashtable]$fieldList,
+        [int]$eventIndex,
+        [switch]$eventDetails,
+        [switch]$asJson
     )
-    $FirstLine = $EventMessage.ToString().Split("`n")[0]
-    $FirstLinePattern = "(?<Timestamp>.+?)`t(?<Provider>.+?)`t(?<Level>.+?)`t`t`t(?<Id>.+?)`t(?<Machine>.+?)`r"
-    $FirstLineMatch = [regex]::Match($FirstLine, $FirstLinePattern)
-    if ($FirstLineMatch.Success -eq $false) {
-        write-warning "bad first line: $FirstLine"
-        $Timestamp = "unknown"
-        $Level = "unknown"
-        $Id = "unknown"
-        $Machine = "unknown"
+
+    if (!$eventMessage) {
+        Write-Warning "empty event message. line: $eventIndex"
+    }
+    $firstLine = $eventMessage[0]
+    $firstLinePattern = "(?<Timestamp>.+?)`t(?<Provider>.+?)`t(?<Level>.+?)`t`t`t(?<Id>.+?)`t(?<Machine>.+)"
+    $firstLineMatch = [regex]::Match($firstLine, $firstLinePattern)
+
+    if ($firstLineMatch.Success -eq $false) {
+        Write-Warning "bad event first line: $eventIndex : $firstLine"
+        $timestamp = "unknown"
+        $level = "unknown"
+        $id = "unknown"
+        $machine = "unknown"
     }
     else {
-        $Timestamp = $FirstLineMatch.Groups["Timestamp"].Value
-        $Level = $FirstLineMatch.Groups["Level"].Value
-        $Id = $FirstLineMatch.Groups["Id"].Value
-        $Machine = $FirstLineMatch.Groups["Machine"].Value
+        $timestamp = $firstLineMatch.Groups["Timestamp"].Value
+        $level = $firstLineMatch.Groups["Level"].Value
+        $id = $firstLineMatch.Groups["Id"].Value
+        $machine = $firstLineMatch.Groups["Machine"].Value
         # convert timestamp from g to datetime suitable for kusto ingestion
         # 6/9/2024 12:53:54 PM
-        $Timestamp = [System.DateTimeOffset]::Parse($Timestamp).ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")
-        #$Timestamp = [datetime]::Parse($Timestamp).ToUniversalTime().tostring("yyyy-MM-ddTHH:mm:ss.fffZ")
+        $timestamp = [dateTimeOffset]::Parse($timestamp).ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")
+        #$timestamp = [datetime]::Parse($timestamp).ToUniversalTime().tostring("yyyy-MM-ddTHH:mm:ss.fffZ")
     }
 
-    $EventMessage = $EventMessage.Remove(0, $FirstLine.Length + 1)
-    $tabArray = $EventMessage.ToString().Split("`t")
-    if ($tabArray.Count -lt 1) {
-        write-warning "bad event: $EventMessage"
+    # remove first line with timestamp, level, id, machine
+    [void]$eventMessage.RemoveAt(0)
+    $eventDescription = $eventMessage[0].Replace("`r`n", "").Trim()
+
+    # remove event description
+    [void]$eventMessage.RemoveAt(0)
+
+    # event details
+    $eventDetailsEvents = $eventMessage.ToArray()
+
+    if ($eventDetailsEvents.Count -lt 1) {
+        Write-Warning "bad event: line: $eventIndex : $eventMessage"
         return
     }
 
-    $Description = ($tabArray[0]).Replace("`r`n", "")
     $message = [ordered]@{
-        EventTimestamp   = $Timestamp
-        ErrorLevel       = $Level
-        EventId          = $Id
-        Machine          = $Machine
-        EventDescription = $Description
+        EventTimestamp   = $timestamp
+        ErrorLevel       = $level
+        EventId          = $id
+        Machine          = $machine
+        EventDescription = $eventDescription
     }
 
-    for ($i = 1; $i -lt $tabArray.Count; $i++) {
-        $LineDetails = $tabArray[$i].split(":", 2)
-        if ($LineDetails.Count -lt 1) {
-            write-warning "bad details: $tabArray[$i]"
-            continue
-        }
-        $DetailsName = $LineDetails[0].Trim().Replace(" ", "-")
-        $DetailsValue = ""
-        if ($LineDetails.Count -gt 1) {
-            $DetailsValue = $LineDetails[1].Replace("`r`n", "").Trim()
-        }
-        if ($message.Contains($DetailsName)) {
-            Write-Warning "Duplicate key: $DetailsName : $DetailsValue"
+    [void]$eventMessage.RemoveAt(0)
+
+    if ($eventDetails) {
+        Format-EventMessageDetails -eventDetailsEvents $eventDetailsEvents `
+            -eventIndex $eventIndex `
+            -message $message `
+            -fieldList $fieldList
+    }
+    else {
+        if ($asJson) {
+            $eventDetailsJson = [ordered]@{}
+            Format-EventMessageDetails -eventDetailsEvents $eventDetailsEvents `
+                -eventIndex $eventIndex `
+                -message $eventDetailsJson `
+                -fieldList $fieldList
+            $message.EventDetails = $eventDetailsJson | ConvertTo-Json -Compress
         }
         else {
-            [void]$message.Add($DetailsName, $DetailsValue)
-        }
-        if ($FieldList.Contains($DetailsName) -eq $false) {
-            [void]$FieldList.Add($DetailsName, $DetailsName)
+            $message.EventDetails = ([string]::join("", $eventMessage.ToArray()).Replace("`r`n", "`t"))
         }
     }
+
     return $message
+}
+
+function Format-EventMessageDetails {
+    param(
+        [string[]]$eventDetailsEvents,
+        [int]$eventIndex,
+        [Collections.Specialized.OrderedDictionary]$message,
+        [hashtable]$fieldList
+    )
+
+    for ($i = 0; $i -lt $eventDetailsEvents.Count; $i++) {
+        $lineDetails = $eventDetailsEvents[$i].split(":", 2)
+        if ($lineDetails.Count -lt 1) {
+            Write-Warning "bad details: line: $($eventIndex + $i) : $eventDetailsEvents[$i]"
+            continue
+        }
+        $detailsName = $lineDetails[0].Trim().Replace(" ", "-")
+        $detailsValue = ""
+        if ($lineDetails.Count -gt 1) {
+            $detailsValue = $lineDetails[1].Replace("`r`n", "").Trim()
+        }
+        if ($message.Contains($detailsName)) {
+            Write-Warning "Duplicate key: $detailsName : $detailsValue"
+        }
+        else {
+            [void]$message.Add($detailsName, $detailsValue)
+        }
+
+        if ($fieldList.Contains($detailsName) -eq $false) {
+            [void]$fieldList.Add($detailsName, $detailsName)
+        }
+    }
 }
 
 function Format-Headers {
     param(
-        [hashtable]$HeaderDictionary
+        [hashtable]$headerDictionary,
+        [switch]$eventDetails
     )
 
-    $Header = [ordered]@{
+    $header = [ordered]@{
         EventTimestamp   = "Timestamp"
         ErrorLevel       = "Level"
         EventId          = "Id"
@@ -134,13 +199,18 @@ function Format-Headers {
         EventDescription = "Description"
     }
 
-    foreach ($Kvp in $HeaderDictionary.GetEnumerator() | Sort-Object Name) {
-        if ($Header.Contains($Kvp.Name)) {
-            Write-Warning "Duplicate header: $($Kvp.Name) : $($Kvp.Value)"
-        }
-        else {
-            [void]$Header.Add($Kvp.Name, $Kvp.Value)
+    if (!$eventDetails) {
+        [void]$header.Add("EventDetails", "Details")
+    }
+    else {
+        foreach ($kvp in $headerDictionary.GetEnumerator() | Sort-Object Name) {
+            if ($header.Contains($kvp.Name)) {
+                Write-Warning "Duplicate header: $($kvp.Name) : $($kvp.Value)"
+            }
+            else {
+                [void]$header.Add($kvp.Name, $kvp.Value)
+            }
         }
     }
-    return $Header
+    return $header
 }
