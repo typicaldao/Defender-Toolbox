@@ -25,7 +25,7 @@ function Get-LatestVersion{
 function Get-LocalVersion{
     if (Test-Path $ModuleFolder\$ModuleName){
         try {
-            Import-Module $ModuleName -ErrorAction Stop # Try to import the module
+            Import-Module $ModuleName -ErrorAction Stop -DisableNameChecking # Try to import the module
             $local_version = (Get-Module -Name $ModuleName).Version
             # Remove-Module -Name $ModuleName # Comment out this line in case imported module is removed.
             return $local_version # Returns System.Version. Use ToString() to convert type.
@@ -95,7 +95,7 @@ function Copy-ModuleFiles([string]$version){
 }
 
 function Update-PsUserProfile {
-    $command = "`nImport-Module -Name $ModuleName"
+    $command = "`nImport-Module -Name $ModuleName -DisableNameChecking"
     $imported = $false
     if (Test-Path $PROFILE){
         $ProfileContent = Get-Content $PROFILE
@@ -130,4 +130,4 @@ function Update-PsUserProfile {
     $result = $true
  }
 
- if ($result) { Update-PsUserProfile }   # Will add 'Import-Module -Name Defender-Toolbox' in Profile so the module is automatically loaded.
+ if ($result) { Update-PsUserProfile }   # Will add 'Import-Module -Name Defender-Toolbox -DisableNameChecking' in Profile so the module is automatically loaded.

@@ -429,7 +429,7 @@ function Update-DefenderToolbox {
     function Get-LocalVersion{
         if (Test-Path $ModuleFolder\$ModuleName){
             try {
-                Import-Module $ModuleName -ErrorAction Stop # Try to import the module
+                Import-Module $ModuleName -ErrorAction Stop -DisableNameChecking # Try to import the module
                 $local_version = (Get-Module -Name $ModuleName).Version
                 # Remove-Module -Name $ModuleName # The module should not be removed when used as a local module.
                 return $local_version # Returns System.Version. Use ToString() to convert type.
@@ -499,7 +499,7 @@ function Update-DefenderToolbox {
     }
 
     function Update-PsUserProfile {
-        $command = "`nImport-Module -Name $ModuleName"
+        $command = "`nImport-Module -Name $ModuleName -DisableNameChecking"
         $imported = $false
         if (Test-Path $PROFILE){
             $ProfileContent = Get-Content $PROFILE
@@ -534,7 +534,7 @@ function Update-DefenderToolbox {
         $result = $true
     }
 
-    if ($result) { Update-PsUserProfile }   # Will add 'Import-Module -Name Defender-Toolbox' in Profile so the module is automatically loaded.
+    if ($result) { Update-PsUserProfile }   # Will add 'Import-Module -Name Defender-Toolbox -DisableNameChecking' in Profile so the module is automatically loaded.
 }
 Export-ModuleMember -Function Update-DefenderToolbox
 
@@ -975,7 +975,7 @@ if (!(Test-Path $MpLogFolder)){
 # Expand MpSupportFiles.cab
 # Source: C:\Windows\system32\expand.exe
 if (!(Test-Path $AnalysisLog)){
-    Write-Host "[*] Extracting CAB file using expand to folder: MpSupportFiles"
+    Write-Host "[*] Extracting CAB file using expand to folder: $MpLogFolder"
     expand -i -f:* $Path $MpLogFolder | Out-Null
     New-Item -Name AnalysisLog.txt -ItemType File -Path $MpLogFolder | Out-Null
     Write-Host "[+] Extract .cab file to $MpLogFolder Done." | Out-File $AnalysisLog -Force
