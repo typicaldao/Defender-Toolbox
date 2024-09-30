@@ -1281,11 +1281,7 @@ foreach ($UpdateSource in $UpdateSources){
                 List-Warning "WUServer config is not found. WSUS cannot update."
                 continue
             }
-            
-            if (!(Test-Path "$MpLogFolder\MpCmdRun-NetworkService.json")){
-                Write-Host "Convert MpCmdRun-NetworkService.log"
-                Read-MpCmdRunLog -logFilePath "$MpLogFolder\MpCmdRun-NetworkService.log" -OutFile "$MpLogFolder\MpCmdRun-NetworkService.json" -quiet | Out-Null
-            }
+
             # Check WSUS 
             $MpCmdRunSigUpdateEvents = Get-Content "$MpLogFolder\MpCmdRun-NetworkService.json" | ConvertFrom-Json | Where-Object Command -Like "*signature*"
             $MpCmdRunSigUpdateEvents += Get-Content "$MpLogFolder\MpCmdRun-System.json" | ConvertFrom-Json | Where-Object Command -Like "*signature*"
