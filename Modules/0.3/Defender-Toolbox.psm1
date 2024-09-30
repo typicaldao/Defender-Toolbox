@@ -882,17 +882,18 @@ function Read-Records($logFilePath) {
 main
 } Export-ModuleMember -Function Read-MpCmdRunLog
 
-function Get-SignatureUpdateAnalysis {
-  param(
+function Get-SignatureUpdateAnalysis{
+    param(
     [string]$Path="$PWD\MpSupportFiles.cab",
     [string]$Result,
-    [switch]$FullEventLog
+    [switch]$FullEventLog,
+    [string]$MpLogFolder
 )
  
 # Analyze MpSupportFiles.cab to get a result of signature update issue
 $MpCabFolder = Split-Path $Path
 $LogFileName = (Split-Path $Path -Leaf).split(".")[0]
-$MpLogFolder = $MpCabFolder + "\" + $LogFileName
+if(!$MpLogFolder) { $MpLogFolder = $MpCabFolder + "\" + $LogFileName } 
 $AnalysisLog = "$MpLogFolder\AnalysisLog.txt"
 if(!$Result) { $Result="$MpLogFolder\SignatureUpdateAnalysis.txt" }
 # $FALLBACK_SOURCES = @("InternalDefinitionUpdateServer", "MicrosoftUpdateServer", "MMPC", "FileShares")
@@ -967,7 +968,6 @@ if (Test-Path $Result){
 List-StartSection "Extract Defender logs"
 if (!(Test-Path $Path)){
     Write-Host "File does not exist: $Path"
-    return
 }
 if (!(Test-Path $MpLogFolder)){ 
     New-Item -Name $LogFileName -ItemType Directory -Path $MpCabFolder | Out-Null
@@ -995,7 +995,7 @@ if ($DynamicSignatureFiles.Length -gt 0) { Move-Item -Path $DynamicSignatureFile
 
 # Convert MpRegistry.txt to JSON.
 Convert-MpRegistrytxtToJson -Path "$MpLogFolder\MpRegistry.txt" -OutFile "$MpLogFolder\MpRegistry.json"
-Write-Host "Convert MpCmdRun-System.log"
+Write-Host "[*] Convert MpCmdRun-System.log. It may takes long time if the log size is big."
 if (Test-Path "$MpLogFolder\MpCmdRun-SystemTemp.log"){
     Rename-Item -Path "$MpLogFolder\MpCmdRun-SystemTemp.log" -NewName MpCmdRun-System.log
 }
@@ -1114,6 +1114,8 @@ if($WuConfigs."SetPolicyDrivenUpdateSourceForOtherUpdates"){$SetPolicyDrivenUpda
 $ForceWSUS = $false
 if($WuConfigs."WUServer"){$WUServer = $WuConfigs."WUServer"}
 
+$FallbackOrderResults = [PSCustomObject]@{}
+
 foreach ($UpdateSource in $UpdateSources){
     switch ($UpdateSource) {
         'MicrosoftUpdateServer' { 
@@ -1134,6 +1136,7 @@ foreach ($UpdateSource in $UpdateSources){
             if(!$WUServer -and $ForceWSUS){ 
                 Write-Host "[-] MU/WU is forced to use WSUS, but WUServer is not configured." | Out-File $Result -Append
                 List-Warning "Cannot update from MU/WU or WSUS. Exit." 
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.WUServer" -Value "[Error] Force WSUS and empty WSUS."
                 continue
             }
             elseif($WUServer){
@@ -1154,13 +1157,15 @@ foreach ($UpdateSource in $UpdateSources){
                     $UpdatesCount = $Matches.UpdatesCount
                 }
                 else {
-                    Write-Host "[!]Last search failed with error: $LastSearchExitCode" | Out-File $Result -Append
+                    List-Warning "Last search failed with error: $LastSearchExitCode" 
+                    $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.WUServer" -Value "[Error] search failed with error: $LastSearchExitCode"
                     continue
                 }
 
                 # Find updates
                 if ($UpdatesCount -eq "0"){
-                    Write-Host "[!] 0 available update is found from WSUS: $WUServer, it will return 'No Updates Needed'" |  Out-File $Result -Append
+                    List-Warning "[!] 0 available update is found from WSUS: $WUServer, it will return 'No Updates Needed'" 
+                    $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.WUServer" -Value "[Warning] $UpdatesCount update(s) found"
                     continue
                 }
                 else {
@@ -1190,7 +1195,7 @@ foreach ($UpdateSource in $UpdateSources){
 
                 $IsDownloadSuccess = $false
                 if ($DownloadExitCode -eq '0x00000000'){
-                    Write-Host -ForegroundColor Green "[+] All $UpdatesCount updates are downloaded successfully." | Out-File $Result -Append
+                    List-Success "All $UpdatesCount updates are downloaded successfully." 
                     $IsDownloadSuccess = $true
                 }
                 else {
@@ -1204,16 +1209,19 @@ foreach ($UpdateSource in $UpdateSources){
                     $InstallationIsCompleted = $InstallCompleteEvent.eventData -match "succeeded = (?<Succeeded>\d+), succeeded with errors = (?<SucceededWithErrors>\d+), failed = (?<Failed>\d+)"
                     Write-Host "Installation completed: $InstallationIsCompleted"
                     if (!$InstallationIsCompleted){
-                        List-Warning "Installation completed event is not found." 
+                        List-Warning "Installation completed event is not found."
+                        $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.WUServer" -Value "[Warning] Installation not found"
                         continue
                     }
 
                     if ($Matches.Succeeded -eq $UpdatesCount){
                         Write-Host -ForegroundColor Green "[+] All $UpdatesCount updates are installed successfully." 
+                        $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.WUServer" -Value "[Success] Updates success"
                     }
                     elseif($Matches.Succeeded -ne $UpdatesCount){
                         List-Warning "Not all updates are installed successfully." 
                         Write-Output $InstallCompleteEvent.eventData | Out-File $Result -Append
+                        $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.WUServer" -Value "[Warning] Updates partially installed."
                     }
                 }
 
@@ -1230,9 +1238,11 @@ foreach ($UpdateSource in $UpdateSources){
                 $IsLastDownloadSuccess = $LastDownloadJobFromInternet | Where-Object eventData -like "DO job*completed successfully*"
                 if ($IsLastDownloadSuccess){
                     List-Success "Signature Update download job from Internet is successful."
+                    $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.MU/WU" -Value "[Success] Download success."
                 }
                 else{
                     List-Warning "Signature Update download from Internet failed."
+                    $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.MU/WU" -Value "[Error] Download failed"
                     # To be continued to catch the error.
                 }
             }
@@ -1243,10 +1253,12 @@ foreach ($UpdateSource in $UpdateSources){
                     $SearchEventsFromInternet[-1] -match "Updates found=(?<UpdatesCount>\d+)" | Out-Null
                     $UpdateCount = $Matches.UpdatesCount
                     List-Success "$UpdateCount update(s) has been found, but download was not started somehow."
+                    $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.MU/WU" -Value "[Error] Update found but not downloaded"
                     # To be continued.
                 }
                 else{
                     List-Warning "No update search event is found. Please check Windows Update log manually. Possible cause could be bad connectivity to *.update.microsoft.com."
+                    $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MicrosoftUpdateServer.MU/WU" -Value "[Error] Update not found."
                 }
             }
 
@@ -1273,11 +1285,14 @@ foreach ($UpdateSource in $UpdateSources){
             if ($LastWSUSEventDetails -match "Update completed successfully. no updates needed"){
                 List-Success "Update completed via WSUS, but no updates needed."
                 List-Warning "If signature is not updated, please confirm if WSUS approves the updates."
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "InternalDefinitionUpdateServer" -Value "[Warning] No updates needed"
                 # Future plan: check MpSigStub.log or not?
             }
             elseif ($LastWSUSEventDetails -match "Update failed with hr: (?<ErrorCode>0x\w{8})"){
                 $LastWSUSUpdateErrorLine = ($LastWSUSEventDetails | Where-Object { $_ -like "*Update failed*"})[-1]
                 $LastWSUSUpdateErrorLine -match "Update failed with hr: (?<ErrorCode>0x\w{8})" | Out-Null
+                $LastWSUSUpdateErrorCode = $Matches.ErrorCode
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "InternalDefinitionUpdateServer" -Value "Failed with error: $LastWSUSUpdateErrorCode"
                 List-Warning "Last WSUS update failed from MpCmdRun log."
                 List-Warning $Matches[0]
             }
@@ -1293,7 +1308,8 @@ foreach ($UpdateSource in $UpdateSources){
             $LastMMPCUpdateFailureDetails -match "Error code: (?<ErrorCode>0x\w{8})" | Out-Null
             $LastMMPCErrorCode = $Matches.ErrorCode 
             if ($LastMMPCErrorCode){
-                List-Warning "Last MMPC update exit with code: $lastMMPCErrorCode" 
+                List-Warning "Last MMPC update exit with code: $lastMMPCErrorCode"
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MMPC" -Value "[Error] Update error code: $lastMMPCErrorCode"
             }
             $LastMMPCUpdateFailureDetails -match "Error description: (?<ErrorDescription>.*)" | Out-Null
             $LastMMPCErrorDescription = $Matches.ErrorDescription
@@ -1308,7 +1324,7 @@ foreach ($UpdateSource in $UpdateSources){
                 $LastMmpcUpdateDetails = $MpCmdRunSystemMmpc[-1].Details 
             }
             else{
-                List-Warning "[!] No MMPC update is found in MpCmdRun-system" 
+                List-Warning "No MMPC update is found in MpCmdRun-system" 
             }
 
             if ($LastMmpcUpdateDetails -match "Update completed succes*"){
@@ -1336,6 +1352,7 @@ foreach ($UpdateSource in $UpdateSources){
 
             if (!($DefinitionUpdateFileSharesSources -match "\\\\.+")){
                 List-Warning "FileShare: $DefinitionUpdateFileSharesSources seems to be a wrong format."
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "FileShares" -Value "[Error] FileShare: $DefinitionUpdateFileSharesSources in wrong format"
                 continue
             }
             else{
@@ -1345,7 +1362,9 @@ foreach ($UpdateSource in $UpdateSources){
             $UNCUpdateEvents = Get-Content "$MpLogFolder\MpCmdRun-System.json" | ConvertFrom-Json | Where-Object Command -Like "*signature*" | Where-Object Details -match "UNC share"
             $LastUNCUpdateEvent = $UNCUpdateEvents[-1]
             if ($LastUNCUpdateEvent.CommandReturn){
-                List-Warning "Last UNC update failed with error: $LastUNCUpdateEvent['CommandReturn']"
+                $UNCCommandReturn = LastUNCUpdateEvent.CommandReturn
+                List-Warning "Last UNC update failed with error: $UNCCommandReturn"
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "FileShares" -Value "[Error] Failed with error: $UNCCommandReturn"
             }
             else{
                 $LastUNCUpdateDetails = $UNCUpdateEvents[-1].Details
@@ -1353,9 +1372,11 @@ foreach ($UpdateSource in $UpdateSources){
 
             if ($LastUNCUpdateDetails -match "no updates needed"){
                 List-Success "Last UNC update returned 'No updates needed.'"
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "FileShares" -Value "[Warning] No updates needed"
             }
             elseif ($LastUNCUpdateDetails -like "*completed succes*"){
                 List-Success "Last UNC update completed with success."
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "FileShares" -Value "[Success] Update success"
             }
 
 
@@ -1368,6 +1389,8 @@ foreach ($UpdateSource in $UpdateSources){
     
 }
 List-EndSection "Log analysis completed."
+$FallbackOrderResults | Format-List
+$FallbackOrderResults | Format-List | Out-File $Result -Append
 List-EndSection "Analyais log is: $Result"
 # Final result: list an output of the failure/success reason of each update source.
 } Export-ModuleMember -Function Get-SignatureUpdateAnalysis
