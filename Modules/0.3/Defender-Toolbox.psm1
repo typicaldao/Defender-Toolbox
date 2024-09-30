@@ -1283,8 +1283,7 @@ foreach ($UpdateSource in $UpdateSources){
             }
 
             # Check WSUS 
-            $MpCmdRunSigUpdateEvents = Get-Content "$MpLogFolder\MpCmdRun-NetworkService.json" | ConvertFrom-Json | Where-Object Command -Like "*signature*"
-            $MpCmdRunSigUpdateEvents += Get-Content "$MpLogFolder\MpCmdRun-System.json" | ConvertFrom-Json | Where-Object Command -Like "*signature*"
+            $MpCmdRunSigUpdateEvents = Get-Content "$MpLogFolder\MpCmdRun-System.json" | ConvertFrom-Json | Where-Object Command -Like "*signature*"
             $WSUSEvents = $MpCmdRunSigUpdateEvents | Where-Object Details -like "*WSUS Update*"
             $LastWSUSEventDetails = $WSUSEvents[-1].Details
             if ($LastWSUSEventDetails -match "Update completed successfully. no updates needed"){
