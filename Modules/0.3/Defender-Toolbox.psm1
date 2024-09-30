@@ -612,7 +612,7 @@ function main() {
       Write-Host "Event Types with Errors: $($errorEventTypes | out-string)" -ForegroundColor Red
     }
 
-    $mpCmdRunLogResults | ConvertTo-Json | Out-File $OutFile
+    $global:records | ConvertTo-Json | Out-File $OutFile
   }
   catch {
     write-verbose "variables:$((get-variable -scope local).value | convertto-json -WarningAction SilentlyContinue -depth 2)"
