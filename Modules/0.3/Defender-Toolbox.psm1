@@ -882,7 +882,7 @@ function Read-Records($logFilePath) {
 main
 } Export-ModuleMember -Function Read-MpCmdRunLog
 
-function Analyze-SignatureUpdate {
+function Get-SignatureUpdateAnalysis {
   param(
     [string]$Path="$PWD\MpSupportFiles.cab",
     [string]$Result,
@@ -1370,4 +1370,4 @@ foreach ($UpdateSource in $UpdateSources){
 List-EndSection "Log analysis completed."
 List-EndSection "Analyais log is: $Result"
 # Final result: list an output of the failure/success reason of each update source.
-} Export-ModuleMember -Function Analyze-SignatureUpdate
+} Export-ModuleMember -Function Get-SignatureUpdateAnalysis
