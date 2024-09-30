@@ -1047,9 +1047,18 @@ $FallbackOrder = $SignatureConfigs."FallbackOrder"
 $AuGracePeriod = $SignatureConfigs."AuGracePeriod".Split()[0]
 $SignatureVersion = $SignatureConfigs.'AVSignatureVersion'
 # Timestamps
-$AVSignatureApplied = Convert-RegDateTime $SignatureConfigs."AVSignatureApplied" # Represents the dattime stamp when AV Signature version was created
-$SignaturesLastUpdated = Convert-RegDateTime $SignatureConfigs."SignaturesLastUpdated"
-$LastFallbackTime = Convert-RegDateTime $SignatureConfigs."LastFallbackTime"
+# Time format could be different. Try to display the value directly.
+
+try {
+    $AVSignatureApplied = Convert-RegDateTime $SignatureConfigs."AVSignatureApplied" # Represents the datetime stamp when AV Signature version was created
+    $SignaturesLastUpdated = Convert-RegDateTime $SignatureConfigs."SignaturesLastUpdated"
+    $LastFallbackTime = Convert-RegDateTime $SignatureConfigs."LastFallbackTime"
+}
+catch {
+    $AVSignatureApplied = $SignatureConfigs."AVSignatureApplied"
+    $SignaturesLastUpdated = $SignatureConfigs."SignaturesLastUpdated"
+    $LastFallbackTime = $SignatureConfigs."LastFallbackTime"
+}
 
 # List the most interested information
 Write-Host "`n"
