@@ -442,12 +442,15 @@ foreach ($UpdateSource in $UpdateSources){
                 List-Success "Last MMPC update was successful from MpCmdRun-system."
                 $MmpcUpdateTime = $MpCmdRunSystemMmpc[-1].StartTime
                 List-Success "Last MMPC updated in MpCmdRun-system was: $MmpcUpdateTime"
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MMPC" -Value "[Success] Last MMPC update succeeded"
             }
             elseif ($LastMmpcUpdateDetails -match "Update failed with hr: (?<ErrorCode>0x\w{8})"){
                 $LastUpdateErrorLine = ($LastMmpcUpdateDetails | Where-Object { $_ -like "*Update failed*"})[-1]
                 $LastUpdateErrorLine -match "Update failed with hr: (?<ErrorCode>0x\w{8})" | Out-Null
                 List-Warning "Last MMPC update failed from MpCmdRun-system."
                 List-Warning $Matches[0]
+                $LastUpdateErrorCode = $Matches.ErrorCode
+                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MMPC" -Value "[Error] Last MMPC update failed: $LastUpdateErrorCode"
             }
         }
         'FileShares'{
