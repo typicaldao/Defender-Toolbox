@@ -21,6 +21,10 @@ Download and import the separated functions to use them.
 Or you can use the combined PowerShell profile `Microsoft.Powershell_profile.ps1` so that the functions are automatically loaded when PowerShell is launched.
 
 ## What's new
+October 1st: Update module version to 0.3, adding features below.
+1. `Read-MpCmdRunLog`
+2. `Get-SignatureUpdateAnalysis` (Requiring other functions. Using the module is recommended.)
+
 August 8th: Update module version to 0.2. Following functions are included the the module:
 1. `Convert-MpRegistrytxtToJson`
 2. `Update-DefenderToolbox`
@@ -30,6 +34,14 @@ August 8th: Update module version to 0.2. Following functions are included the t
 1. Load the module automatically in your PowerShell profile. (The update module will check and help you with it.) When you need to parse log, right click in file explorer and run the functions directly. Usually, no additional parameter is needed as the default log name is used.
 
 ## Key functions
+### `Get-SignatureUpdateAnalysis`
+With Defender Antivirus log (MpSupportFiles.cab), this function will do the following steps.
+1. Extract the .cab file and organize the files.
+2. Convert logs into standard format.
+3. Analyze signature update configurations and events. Show output of success or errors.
+
+Sample usage: `Get-SignatureUpdateAnalysis -Path 'C:\test\MpSupportFiles.cab'`
+
 ### `Convert-MpOperationalEventLogTxt`
 Format MpOperationalEvents.txt into PowerShell objects, and export the output as CSV so that you can use Excel or other tools to view and filter.
 
