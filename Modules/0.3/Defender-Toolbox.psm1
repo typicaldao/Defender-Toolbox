@@ -1342,8 +1342,6 @@ foreach ($UpdateSource in $UpdateSources){
                 $LastUpdateErrorLine -match "Update failed with hr: (?<ErrorCode>0x\w{8})" | Out-Null
                 List-Warning "Last MMPC update failed from MpCmdRun-system."
                 List-Warning $Matches[0]
-                $LastUpdateErrorCode = $Matches.ErrorCode
-                $FallbackOrderResults | Add-Member -MemberType NoteProperty -Name "MMPC" -Value "[Error] Last MMPC update failed: $LastUpdateErrorCode"
             }
         }
         'FileShares'{
