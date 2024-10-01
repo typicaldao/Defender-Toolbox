@@ -995,7 +995,7 @@ if ($DynamicSignatureFiles.Length -gt 0) { Move-Item -Path $DynamicSignatureFile
 
 # Convert MpRegistry.txt to JSON.
 Convert-MpRegistrytxtToJson -Path "$MpLogFolder\MpRegistry.txt" -OutFile "$MpLogFolder\MpRegistry.json"
-Write-Host "[*] Convert MpCmdRun-System.log. It may takes long time if the log size is big."
+Write-Host "[*] Convert MpCmdRun-System.log. It may take some time if the log size is big."
 if (Test-Path "$MpLogFolder\MpCmdRun-SystemTemp.log"){
     Rename-Item -Path "$MpLogFolder\MpCmdRun-SystemTemp.log" -NewName MpCmdRun-System.log
 }
