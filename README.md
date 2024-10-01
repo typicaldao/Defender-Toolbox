@@ -67,5 +67,14 @@ Python version of the parser provided by Microsoft/mdatp-xplat: https://github.c
 ### `Convert-MpRegistrytxtToJson`
 Convert Defender log: MpRegistry.txt into a JSON format. Please be aware that if you are using Windows default PowerShell 5.1, the output of JSON output via function ConvertTo-Json is not that pretty. You might need to use your text editor to prettier JSON for you. PowerShell 7.x works just fine. 
 
+## Known issue(s)
+The script will read log file from C:\Windows\System32 directory and most likely find the file not existing when:
+1. PowerShell is running as Administrator privileges
+or
+2. [Environment]::CurrentDirectory is not the PowerShell current working directory
+
+Workaround is to use full file path of the log.
+
 ## Feature on the way
-1. List help information of the tool.
+1. Improve Get-SignatureUpdateAnalysis to cover installation errors from MpSigStub.log.
+2. Analyze scan issues.
