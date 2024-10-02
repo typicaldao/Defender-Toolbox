@@ -95,7 +95,7 @@ function Copy-ModuleFiles([string]$version){
 }
 
 function Update-PsUserProfile {
-    $command = "`nImport-Module -Name $ModuleName -DisableNameChecking"
+    $command = "`nImport-Module -Name $ModuleName"
     $imported = $false
     if (Test-Path $PROFILE){
         $ProfileContent = Get-Content $PROFILE

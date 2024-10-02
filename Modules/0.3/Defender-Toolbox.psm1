@@ -499,7 +499,7 @@ function Update-DefenderToolbox {
     }
 
     function Update-PsUserProfile {
-        $command = "`nImport-Module -Name $ModuleName -DisableNameChecking"
+        $command = "`nImport-Module -Name $ModuleName"
         $imported = $false
         if (Test-Path $PROFILE){
             $ProfileContent = Get-Content $PROFILE
@@ -591,7 +591,6 @@ $mpCmdRunExe = 'MpCmdRun.exe'
 function main() {
   try {
     if (!(Test-Path $logFilePath)) {
-      Get-Help $scriptName -Examples
       Write-Host "File not found: $logFilePath"
       return $null
     }
